@@ -3,7 +3,7 @@
 //   자모 조합(판마다): 실마리 안 씀 40 · 하나마다 −10 · 넷 이상 0 · 만점 두 학년 모두 440 + 440 = 880
 //   근정전 남은 실마리 문제 · 힌트 퀴즈 · 자모 잘못 놓기 · 연습 판은 점수와 상관없다 · 끝(알현 뒤 · 서약서 · PDF)에는 보이지 않는다
 //   오를 때 — 칸 옆에 「+40」이 떠오르고(0.4 · 알림창이 뜨는 초) 1.2초 머물고(낙관이 머무는 초) 사라진다 · 숫자는 그 순간 바뀐다 · 0점이면 아무것도 없다
-//   진행을 저장하지 않으니 점수도 켤 때마다 0에서
+//   같은 탭에서 새로 고침하면 판을 다 푼 뒤까지의 점수에서 이어진다(save.js · 2-7) · 새로 켜면 0에서
 import { el, wait } from './dom.js';
 import { t } from './text.js';
 import { T, reduced } from './timing.js';
@@ -17,6 +17,8 @@ const draw = () => { num.textContent = t('D-03').replace('{n}', total); };
 // 무대에 한 번 붙인다 — 화면을 갈아 끼워도 남는다(전환 막 아래)
 export function mountScore(game) { draw(); game.insertBefore(box, game.firstChild); }
 export function showScore(on) { box.hidden = !on; }
+export const getScore = () => total;
+export function setScore(n) { total = n; draw(); }
 
 export async function addScore(n) {
   if (n <= 0) return;

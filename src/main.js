@@ -13,7 +13,8 @@ import './styles/ending.css';
 import { t } from './lib/text.js';
 import { preloadAll, config, imageUrl } from './lib/assets.js';
 import { drawFavicon } from './lib/favicon.js';
-import { mountScore } from './lib/score.js';
+import { mountScore, setScore } from './lib/score.js';
+import { loadGame, saveGame } from './lib/save.js';
 import { startScreen } from './screens/start.js';
 import { selectScreen } from './screens/select.js';
 import { prologue } from './screens/prologue.js';
@@ -40,15 +41,33 @@ async function main() {
 
   mountScore(document.getElementById('game'));   // 점수 칸 — 지도에 들어설 때 보인다 (2-6)
 
-  // 진행을 저장하지 않는다 — 「이어서 하기」 버튼이 없으니 기능도 없다. 켤 때마다 캐릭터 선택부터 (2026-09-23)
-  await startScreen();
-  const character = await selectScreen();
-  const game = { character, solved: 0, place: 0 };   // 지도 1장째(육조거리)에서 시작
-  await prologue(game.character);
+  // 같은 탭에서 새로 고침하면 마지막으로 들어선 화면의 처음에서 이어진다 · 새 탭이면 늘 시작 → 캐릭터 선택부터 (2-7 · lib/save.js)
+  //   「이어서 하기」 버튼은 없다 (2026-09-23 🙋 「이어하기 버튼이 없으면 기능도 없어야 해.」 — 탭을 넘어 이어지지 않는다)
+  let game = loadGame();
+  const stages = ['prologue', 'journey', 'audience', 'ending'];
+  const from = (s) => !game || stages.indexOf(game.stage) <= stages.indexOf(s);
+  if (game) setScore(game.score || 0);
+  else {
+    await startScreen();
+    const character = await selectScreen();
+    game = { character, solved: 0, place: 0, stage: 'prologue' };   // 지도 1장째(육조거리)에서 시작
+    saveGame(game);
+  }
+  if (game.stage === 'prologue') await prologue(game.character);
 
-  await journey(game);                          // 지도와 문 — 빗장 11개
-  const hall = await audience(game);            // 알현
-  await ending(game, hall);                     // 갈무리 → 서약서 → 잠든 모습 (알현 그림을 어둡게 깐 채로)
+  if (from('journey')) {
+    game.stage = 'journey'; saveGame(game);
+    await journey(game);                        // 지도와 문 — 빗장 11개
+  }
+  let hall;
+  if (from('audience')) {
+    game.stage = 'audience'; saveGame(game);
+    hall = await audience(game);                // 알현
+  } else {
+    hall = await audience(game, { settled: true });   // 갈무리에서 새로 고침 — 알현 그림만 깔고 곧바로
+  }
+  game.stage = 'ending'; saveGame(game);
+  await ending(game, hall);                     // 갈무리 → 서약서 → 잠든 모습 (알현 그림을 어둡게 깐 채로) · [종료]에서 저장을 지운다
 }
 
 main();

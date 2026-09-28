@@ -10,6 +10,7 @@ import { el, wait } from '../lib/dom.js';
 import { t, HARD } from '../lib/text.js';
 import { config, imageUrl } from '../lib/assets.js';
 import { savePdf } from '../lib/pdf.js';
+import { clearGame } from '../lib/save.js';
 import { scene } from '../lib/scene.js';
 import { mount, cover } from '../lib/stage.js';
 import { T, reduced } from '../lib/timing.js';
@@ -113,6 +114,7 @@ export async function ending(game, { screen, dim, layer }) {
 
   // 종료 — 저장 없이 눌러도 막지 않는다
   await new Promise((r) => endB.addEventListener('click', r, { once: true }));
+  clearGame();                                 // 끝 — 새로 고침하면 시작 화면부터 (2-7)
   document.removeEventListener('keydown', onKey);
   wrap.classList.add('lifting');               // 서약서 판이 걷힌다(0.9초)
   await wait(reduced() ? 0 : T.boardLift);

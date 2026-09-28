@@ -21,6 +21,7 @@ import { Walker, walkLoop } from '../lib/walker.js';
 import { notice } from '../lib/notice.js';
 import { T, reduced } from '../lib/timing.js';
 import { Board } from '../boards/board.js';
+import { saveGame } from '../lib/save.js';
 import { PLACES, boltsBefore } from './journey.js';
 import jamoData from '../data/jamo.json';
 
@@ -99,6 +100,7 @@ export async function gateScreen(game, charCfg, p, seek) {
     });
     game.solved = first + k + 1;
     game.place = p;
+    saveGame(game);                                      // 빗장 하나를 풀었다 — 새로 고침하면 다음 빗장부터 (2-7)
     hideActors(false);                                   // 판이 다 걷히면 바로 조작키가 먹는다
   }
 

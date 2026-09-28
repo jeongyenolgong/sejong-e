@@ -26,6 +26,7 @@ import { Walker, walkLoop } from '../lib/walker.js';
 import { notice, guide, say, GuideLine } from '../lib/notice.js';
 import { minimap } from '../lib/minimap.js';
 import { showScore } from '../lib/score.js';
+import { saveGame } from '../lib/save.js';
 import { bandAt, heightAt, stepWithin, atSpot, Camera } from '../lib/field.js';
 import { T, reduced } from '../lib/timing.js';
 import { Board, hintBoard, hintsOf } from '../boards/board.js';
@@ -287,7 +288,11 @@ function courtQueue(game) {
   const officers = [];
   let at = 0;
   per.forEach((m, i) => { officers.push({ i, qs: qs.slice(at, at + m).map((q, k) => ({ q, n: at + k + 1 })) }); at += m; });
-  return { total: qs.length, officers: officers.filter((o) => o.qs.length), solved: 0 };
+  // 새로 고침 전에 이미 맞힌 문제는 빼고 이어서 (2-7) — 관리 자리·번호는 그대로
+  const done = Math.min(game.courtDone || 0, qs.length);
+  let skip = done;
+  for (const o of officers) while (skip && o.qs.length) { o.qs.shift(); skip -= 1; }
+  return { total: qs.length, officers: officers.filter((o) => o.qs.length), solved: done };
 }
 const SIDE = ['왼쪽', '오른쪽'];
 const NTH = ['첫', '두', '세', '네'];
@@ -298,6 +303,7 @@ async function courtArrive(view, game) {
   await view.showNotice(PLACES[5].notice);
   view.court = courtQueue(game);
   if (!view.court.total) return;                        // 다 썼으면 그냥 지나간다
+  if (!view.court.officers.length) { view.line.show(t('U-11')); return; }   // 다 풀고 새로 고침했다 (2-7)
   await view.showGuide(t('U-07'));
   await view.showGuide(fillIn(t('U-08'), view.court.officers[0].i));
 }
@@ -312,6 +318,7 @@ async function courtOfficer(view) {
     if (r !== 'right') break;                            // 「돌아가기」 — 이 문제는 남는다
     o.qs.shift();
     court.solved += 1;
+    view.game.courtDone = court.solved; saveGame(view.game);   // 새로 고침해도 맞힌 문제는 다시 안 낸다 (2-7)
   }
   view.quiet(false);
   if (!o.qs.length) court.officers.shift();
@@ -330,8 +337,19 @@ export async function journey(game) {
   game.used = game.used || {};                           // 판마다 맞힌 실마리 수(근정전에서 남은 것을 센다)
   let p = game.place;
   let arrival = 'prologue';
+  let intoGate = !!game.atGate;                          // 문 앞에서 새로 고침했다 — 지도를 거치지 않고 그 문 앞 화면으로 (2-7)
 
   for (;;) {
+    if (intoGate) {
+      intoGate = false;
+      await cover('dark', T.screenFade, 1);
+      showScore(true);
+      const result = await gateScreen(game, charCfg, p, (q, k, n, gate) => seekOnMap(game, charCfg, p, q, k, n, gate));
+      p += 1;
+      game.place = p; game.atGate = false; saveGame(game);
+      arrival = result === 'bridge' ? 'slide' : 'light';
+      continue;
+    }
     const view = new MapView(game, charCfg);
     const screen = await view.build(p);
 
@@ -358,8 +376,12 @@ export async function journey(game) {
       await cover('dark', T.screenFade, 0);
     }
 
+    game.place = p; saveGame(game);                 // 이 지도 장 — 새로 고침하면 출발 자리에서 (2-7)
+
     // 육조거리에 닿으면 알림창(5-3) → 튜토리얼 · 근정문을 지나 근정전에 들어서면 알림창 → 남은 실마리
-    if (p === 0) await tutorial(view);
+    // 튜토리얼을 마친 뒤 새로 고침했으면 다시 하지 않는다 — ▲◀▶ 모두 · 넘어가는 선 열림 (2-7)
+    if (p === 0 && !game.tutored) { await tutorial(view); game.tutored = true; saveGame(game); }
+    else if (p === 0) { view.line.show(t('U-03')); view.controls.setEnabled(true); }
     else if (PLACES[p].court) { await courtArrive(view, game); view.controls.setEnabled(true); }
     else view.controls.setEnabled(true);
 
@@ -372,6 +394,7 @@ export async function journey(game) {
         // 장이 넘어가는 동안 걷기는 멈추지만, 누르고 있는 조작키는 그대로 둔다 — 떼지 않고 계속 걸어 올라간다
         view.line.hide();
         await view.slideTo(view.p + 1);
+        game.place = view.p; saveGame(game);
         if (PLACES[view.p].court) { await courtArrive(view, game); view.controls.setEnabled(true); }
         continue;
       }
@@ -402,8 +425,10 @@ export async function journey(game) {
 
     // 문 앞 화면 — 들어갈 때 어두워졌다 밝아진다
     await cover('dark', T.screenFade, 1);
+    game.place = p; game.atGate = true; saveGame(game);
     const result = await gateScreen(game, charCfg, p, (q, k, n, gate) => seekOnMap(game, charCfg, p, q, k, n, gate));
     p += 1;
+    game.place = p; game.atGate = false; saveGame(game);
     arrival = result === 'bridge' ? 'slide' : 'light';
   }
 }

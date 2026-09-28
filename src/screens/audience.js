@@ -11,18 +11,25 @@ import { Controls } from '../lib/controls.js';
 import { Walker, walkLoop } from '../lib/walker.js';
 import { T } from '../lib/timing.js';
 
-export async function audience(game) {
+// settled — 갈무리에서 새로 고침했을 때(2-7): 세종 앞에 선 모습만 깔고 곧바로 갈무리로(걷기·자막 없이)
+export async function audience(game, { settled = false } = {}) {
   const [cfg, charCfg] = await Promise.all([config('bg_audience'), config(game.character === 'f' ? 'ch_back_f' : 'ch_back_m')]);
   await preloadAll(['bg_audience']);
   const sc = scene(cfg);
   const walker = new Walker(charCfg, cfg.charHeight);
-  walker.set(cfg.stand.x, cfg.stand.y);
+  walker.set(cfg.stand.x, settled ? cfg.stopY : cfg.stand.y);
   sc.append(walker.img);
   const controls = new Controls();
   const dim = el('div.dim');
   const layer = el('div.layer');
   const screen = el('section.screen.audience', {}, [sc, controls.el, dim, layer]);
   mount(screen);
+  if (settled) {
+    controls.destroy();
+    controls.el.remove();
+    await cover('dark', T.screenFade, 0);
+    return { screen, dim, layer };
+  }
   await cover('dark', T.screenFade, 0);
   controls.setEnabled(true);
 

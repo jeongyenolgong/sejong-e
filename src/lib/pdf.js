@@ -1,5 +1,6 @@
-// 저장 — 갈무리 판 11장 + 서약서 판을 PDF로 (요소정의 14-1 · 파일 이름 F-01)
-// 판 하나 = 한 쪽 · 차례는 넘겨 본 그대로 · 서버 없이 브라우저 안에서 만든다.
+// 저장 — 서약서 판 + 갈무리 판 11장을 PDF로 (요소정의 14-1 · 파일 이름 F-01)
+// 판 하나 = 한 쪽 · 1쪽은 서약서(고른 캐릭터 앞모습이 판 왼쪽에 판 높이로 선다) · 2~12쪽은 갈무리 판을 넘겨 본 차례 그대로 (2-4 · 2026-09-28)
+// 서버 없이 브라우저 안에서 만든다.
 // 판을 캔버스에 직접 그려 그림으로 담는다 — 한글 글꼴(고운바탕)을 PDF에 따로 싣지 않아도 글자가 깨지지 않고,
 // 기기·브라우저마다 결과가 같다. 판의 치수·글자 크기는 화면과 같은 칸(u) 값을 쓴다.
 // 디자인은 화면의 갈무리 판·서약서 판 그대로다(디13) — 본선 한지 · 빈칸의 치자빛 형광펜 띠(디4-6) · 서약서 두 겹 틀(디12) · 체크 칸은 찍힌 도장 모양.
@@ -159,13 +160,27 @@ function pledgeCanvas(date, paper) {
   return c;
 }
 
-export async function savePdf(sentences, date, paperUrl) {
-  const [{ jsPDF }, paper] = await Promise.all([import('jspdf'), loadImage(paperUrl)]);
+// 서약서 쪽 — 고른 캐릭터 앞모습을 판 왼쪽에 판 높이로 세운다 · 사이 2칸 · 바탕은 종이 흰빛 (2-4)
+function withCharacter(board, ch) {
+  if (!ch) return board;
+  const gap = 2 * U;
+  const h = board.height, w = Math.round(h * ch.width / ch.height);
+  const c = document.createElement('canvas');
+  c.width = w + gap + board.width; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(ch, 0, 0, w, h);
+  g.drawImage(board, w + gap, 0);
+  return c;
+}
+
+export async function savePdf(sentences, date, paperUrl, charUrl) {
+  const [{ jsPDF }, paper, ch] = await Promise.all([import('jspdf'), loadImage(paperUrl), loadImage(charUrl)]);
   await document.fonts.load(`400 ${U}px "Gowun Batang"`);
   await document.fonts.load(`700 ${U}px "Gowun Batang"`);
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const W = 297, H = 210, margin = 24;
-  const pages = [...sentences.map((j) => sentenceCanvas(j, paper)), pledgeCanvas(date, paper)];
+  const pages = [withCharacter(pledgeCanvas(date, paper), ch), ...sentences.map((j) => sentenceCanvas(j, paper))];
   pages.forEach((canvas, i) => {
     if (i > 0) pdf.addPage();
     const ratio = canvas.width / canvas.height;

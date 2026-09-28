@@ -63,18 +63,26 @@
 .side.l { left: calc(1.6 * var(--u)); }
 .side.r { right: calc(1.6 * var(--u)); }
 .side:disabled { opacity: 0; pointer-events: none; }
-/* 자막 — 화면 아래 가운데(버튼이 없어 그 자리를 쓴다) */
+/* 자막 — 화면 아래 가운데(버튼이 없어 그 자리를 쓴다)
+   한지 상자(2-1 · 2026-09-28) — 판·알림창과 같은 한지 · 먹 한 줄 테두리 · 판 그림자 · 폭은 글 길이만큼
+   상자는 글 뒤의 한 겹(::before)으로 그린다 — 컷 3에서 상자만 옅어지게 */
 .caption {
   position: absolute; left: 50%; bottom: calc(7 * var(--u)); transform: translateX(-50%); z-index: 11;
-  width: calc(76 * var(--u)); margin: 0; text-align: center;
+  width: max-content; max-width: calc(76 * var(--u)); margin: 0; text-align: center;
+  padding: calc(1.2 * var(--u)) calc(3.2 * var(--u));
   font-size: calc(2.7 * var(--u)); line-height: 1.5; color: var(--meok); text-wrap: balance;
   pointer-events: none;
-  text-shadow: 0 0 calc(1.2 * var(--u)) rgba(243, 236, 219, .9);
+}
+.caption::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--hanji-hi) var(--paper-main) center / cover; border: 2px solid var(--meok); box-shadow: var(--shadow);
+  transition: opacity .9s ease;
 }
 
-/* 컷 3 — 떠올라 흩어지는 글자 */
-.shatter-line { transition: bottom var(--rise-ms, 1350ms) cubic-bezier(.3, 0, .2, 1); white-space: nowrap; width: auto; }
+/* 컷 3 — 떠올라 흩어지는 글자 · 떠오르기 시작할 때 상자는 제자리에서 스르르 사라지고(0.9 — 이 게임의 「옅어지는」 초) 글자만 떠오른다 (2-1) */
+.shatter-line { transition: bottom var(--rise-ms, 1350ms) cubic-bezier(.3, 0, .2, 1); white-space: nowrap; }
 .shatter-line.risen { bottom: 52%; }
+.shatter-line.risen::before { opacity: 0; }
 .shatter-line .syl { display: inline-block; transition: opacity .5s ease; }
 .shatter-line .syl.gone { opacity: 0; }
 .ink-piece {

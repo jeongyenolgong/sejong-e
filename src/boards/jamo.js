@@ -3,7 +3,8 @@
 //   ② 문제  문장 + 빈칸(빈칸 길이는 낱말의 음절 수를 따른다 · 두 줄로 쪼개지지 않는다)
 //   ③ 조합 영역(테두리 하나) — 음절 칸 · 그 아래 조각 한 줄 · 맨 아래 Q-02 넣는 법 안내
 //
-// · 조각은 그 낱말의 것만, 한 줄로, 차례만 난수 — 정답 차례와 같으면 다시 섞는다
+// · 조각은 그 낱말의 것만, 차례만 난수 — 정답 차례와 같으면 다시 섞는다 · 조각은 커서 칸과 같은 크기의 상자(누르는 것 · 버튼 식구) · 여덟이 넘으면 두 줄 (2-5)
+// · 조각을 누르는 동안 먹으로 채워지고 · 끌리는 조각은 손가락 위에 떠서 따라온다 (2-5)
 // · 칸은 음절 수만 보인다(칸 안의 자모 배치는 조각을 놓아야 드러난다)
 // · 한 음절 안에서는 차례를 안 지켜도 제자리에 앉는다 · 안 맞으면 조각은 돌아가고 그 칸이 흔들린다 · 글은 없다
 // · 자판으로 친 자모는 커서가 있는 칸으로만 간다 · 커서는 칸을 누르거나 자판을 칠 때 첫 빈 칸에 · ← → 로 옮긴다
@@ -17,7 +18,8 @@ import { T, reduced } from '../lib/timing.js';
 const SINGLE = [...'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅐㅑㅓㅔㅕㅗㅜㅡㅣ'];
 
 export class JamoPanel {
-  constructor(item, { onHint, keyboard, counter, practice = false, maxHints }) {
+  constructor(item, { onHint, keyboard, counter, practice = false, maxHints, onSolved }) {
+    this.onSolved = onSolved;                // 빈칸에 단어가 떠오르는 순간 — 점수(2-6 · 연습 판은 없음)
     this.item = item;
     this.keyboard = keyboard;
     this.maxHints = maxHints ?? item.syllables.length;
@@ -48,6 +50,11 @@ export class JamoPanel {
       return p;
     });
     this.pool = el('div.pool', {}, this.pieces);
+    // 조각 줄 — 한 줄에 여덟까지 · 넘으면 두 줄로, 줄마다 같은 수(12 → 6+6 · 10 → 5+5) · 판 높이는 줄 수를 따른다(board.js · 2-5)
+    const per = 8, n = this.pieces.length;
+    this.rows = Math.ceil(n / per);
+    const inRow = Math.ceil(n / this.rows);
+    this.pool.style.width = `calc(${inRow} * 6.6 * var(--u) + ${inRow - 1} * 1.2 * var(--u))`;
 
     this.blank = el('span.blank', {}, [el('span.word', { text: item.word })]);
     this.work = el('div.work', {}, [this.slots, this.pool, el('p.howto', { text: t('Q-02') })]);
@@ -132,7 +139,9 @@ export class JamoPanel {
     document.body.append(ghost);
     const size = parseFloat(getComputedStyle(p).fontSize);
     ghost.style.fontSize = `${size}px`;
-    const move = (ev) => { ghost.style.left = `${ev.clientX}px`; ghost.style.top = `${ev.clientY}px`; };
+    // 끌리는 조각은 손가락보다 한 칸 위에 떠서 따라온다(손가락에 가리지 않게) · 놓이는 자리도 떠 있는 조각 자리로 본다 (2-5)
+    const lift = p.getBoundingClientRect().height * 0.9;
+    const move = (ev) => { ghost.style.left = `${ev.clientX}px`; ghost.style.top = `${ev.clientY - lift}px`; };
     move(e);
     p.classList.add('lifted');
     const up = (ev) => {
@@ -141,7 +150,7 @@ export class JamoPanel {
       document.removeEventListener('pointercancel', up);
       ghost.remove();
       p.classList.remove('lifted');
-      const target = document.elementFromPoint(ev.clientX, ev.clientY);
+      const target = document.elementFromPoint(ev.clientX, ev.clientY - lift);
       const box = target && target.closest ? target.closest('.syl-box') : null;
       if (!box) return;
       const i = this.boxes.findIndex((b) => b.node === box);
@@ -237,8 +246,10 @@ export class JamoPanel {
     node.classList.add('wait');
     const to = node.getBoundingClientRect();
     const fly = el('span.flyer', { text: ch });
-    fly.style.left = `${from.left - hostBox.left}px`;
-    fly.style.top = `${from.top - hostBox.top}px`;
+    // 조각과 같은 상자 — 떠오른 조각의 한가운데에 겹쳐 두고(크기는 떠오르기 전 크기 · 떠오름 배율은 CSS가 준다) 칸 한가운데로 날린다
+    const bw = p.offsetWidth, bh = p.offsetHeight;
+    fly.style.left = `${from.left + from.width / 2 - bw / 2 - hostBox.left}px`;
+    fly.style.top = `${from.top + from.height / 2 - bh / 2 - hostBox.top}px`;
     fly.style.fontSize = getComputedStyle(p).fontSize;
     host.append(fly);
     const dx = to.left + to.width / 2 - (from.left + from.width / 2);
@@ -270,6 +281,7 @@ export class JamoPanel {
     this.el.classList.add('cleared');                         // 걷힐 때 실마리 버튼도 함께 사라진다
     await wait(T.jamoClear);
     this.blank.classList.add('filled');
+    if (this.onSolved) this.onSolved(this.hintsUsed);
     await wait(T.jamoFill + T.jamoHold);
     this.resolveDone();
   }

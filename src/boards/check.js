@@ -6,10 +6,11 @@
 // · 틀리면 판이 흔들리고 → 고른 포스터 문장(인용선 + 뒤에 ✕) · 그 아래 해설이 떠오른다(디4-7) · 틀린 코드는 칸에 남았다가 칸을 누르거나 숫자를 치면 비워진다
 // · 이 물음의 오답 코드 → 고른 문장 + 그 해설 · 같은 학년 다른 문항 코드 → Q-06 · 그 밖의 숫자 → Q-05 (고른 문장 없이 가운데 정렬)
 // · 해설 자리는 「가장 긴 고른 문장 + 해설」 높이로 미리 비운다(이 학년 전체에서 잰다)
-// · 맞히면 「통과」 낙관(L-01)이 판 한가운데 크게 1.2초에 걸쳐 찍히고 1.2초 머문다
+// · 맞히면 「통과」 낙관(L-01)이 판 한가운데 크게 1.2초에 걸쳐 찍히고 1.2초 머문다 · 찍히는 순간 점수가 오른다(40 − 틀린 보기 수 × 10 · 2-6)
 import { el, wait, replay } from '../lib/dom.js';
 import { t } from '../lib/text.js';
 import { T, reduced } from '../lib/timing.js';
+import { addScore } from '../lib/score.js';
 
 export class CheckPanel {
   constructor(item, allItems, { keyboard, shakeTarget }) {
@@ -19,6 +20,7 @@ export class CheckPanel {
     this.value = '';
     this.stale = false;
     this.busy = false;
+    this.wrong = new Set();                            // 이 물음의 틀린 보기 — 같은 보기를 다시 넣어도 한 번 (2-6)
     this.correct = new Promise((r) => { this.resolve = r; });
     // 이 학년 포스터에 있는 코드 전부
     this.codes = new Map();
@@ -87,6 +89,7 @@ export class CheckPanel {
     const hit = this.codes.get(Number(this.value));
     if (hit && hit.it === this.item && hit.i + 1 === this.item.answer) { await this.right(); return; }
     const own = hit && hit.it === this.item;
+    if (own) this.wrong.add(hit.i);
     const msg = !hit ? t('Q-05') : !own ? t('Q-06') : hit.it.options[hit.i].explain;
     this.stale = true;
     this.busy = true;
@@ -105,6 +108,7 @@ export class CheckPanel {
     this.busy = true;
     this.drawCells();
     this.seal.classList.add('on');
+    addScore(40 - 10 * this.wrong.size);
     await wait(reduced() ? 600 : T.sealStamp + T.sealHold);
     this.resolve();
   }

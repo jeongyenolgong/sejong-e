@@ -10,6 +10,12 @@
 .board-frame.kb { translate: 0 calc(-1 * var(--lift, 0px)); }
 /* 판이 걷힌다 — 0.9초 동안 옅어지며 조금 위로 올라간다 (10-3-1) */
 .board-frame.lifting { opacity: 0; top: calc(50% - 19.25 * var(--u) - 3.6 * var(--u)); transition: opacity .9s ease, top .9s cubic-bezier(.4, 0, .2, 1); pointer-events: none; }
+/* 빗장 판(자모 조합 → 점검 퀴즈) — 조각 상자(6.6)가 들어가도록 1.4 더 높고, 조각이 두 줄이면 한 줄(7.8)만큼 더 · 화면 가운데 (2-5) */
+.board-frame.bolt {
+  --bh: calc((39.9 + (var(--rows, 1) - 1) * 7.8) * var(--u));
+  height: var(--bh); top: calc(50% - var(--bh) / 2 - 1.2 * var(--u));
+}
+.board-frame.bolt.lifting { top: calc(50% - var(--bh) / 2 - 3.6 * var(--u)); }
 .board, .underboard { position: absolute; inset: 0; }
 .board { overflow: visible; background-image: var(--paper-main); }
 .underboard { opacity: 0; translate: calc(-2.8 * var(--u)) calc(2.8 * var(--u)); background-image: var(--paper-main); }
@@ -47,7 +53,7 @@
 .blank .word { opacity: 0; padding: 0 calc(.3 * var(--u)); transition: opacity 1.6s ease-in-out; }
 .blank.filled .word { opacity: 1; }
 .work {
-  position: relative; width: 100%; height: calc(19.8 * var(--u)); overflow: hidden; flex: none;
+  position: relative; width: 100%; height: calc((21.2 + (var(--rows, 1) - 1) * 7.8) * var(--u)); overflow: hidden; flex: none;
   border: 1px solid rgba(31, 28, 23, .28); background: rgba(233, 224, 204, .35);
   transition: height .9s cubic-bezier(.4, 0, .2, 1), opacity .9s ease, margin-top .9s cubic-bezier(.4, 0, .2, 1), border-color .9s ease;
 }
@@ -78,20 +84,38 @@
 }
 @keyframes inkspread { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(1.2); opacity: 0; } }
 .pool {
-  position: absolute; left: 0; right: 0; top: calc(10.7 * var(--u));
-  display: flex; flex-wrap: wrap; gap: calc(1.1 * var(--u)) calc(1.5 * var(--u)); justify-content: center;
+  position: absolute; left: 50%; top: calc(10.3 * var(--u)); transform: translateX(-50%);
+  display: flex; flex-wrap: wrap; gap: calc(1.2 * var(--u)); justify-content: center;
+}
+/* 조각 — 커서 칸과 같은 6.6 정사각 · 누르는 것이라 버튼 식구(디4-1): 한지 · 두 겹 먹 테두리 · 판 그림자 (2-5 · 2026-09-28) */
+.piece, .ghost-piece, .flyer {
+  width: calc(6.6 * var(--u)); height: calc(6.6 * var(--u)); display: grid; place-items: center; line-height: 1;
+  color: var(--meok); background: var(--hanji-hi) var(--paper-main) center / cover; border: 2px solid var(--meok);
+  box-shadow: inset 0 0 0 calc(.35 * var(--u)) var(--hanji-hi), inset 0 0 0 calc(.35 * var(--u) + 1px) var(--meok), var(--shadow);
 }
 .piece {
-  font-size: var(--f2); line-height: 1.35; color: var(--meok); cursor: grab; touch-action: none;
-  transition: opacity .2s ease, transform .45s ease, text-shadow .45s ease;
+  font-size: var(--f2); cursor: grab; touch-action: none;
+  transition: opacity .2s ease, transform .45s ease, background .15s, color .15s, box-shadow .45s ease;
 }
-.piece.lifted { opacity: .3; }
+/* 누르고 있는 동안 — 먹으로 채우고 글자는 한지색(버튼 누름과 같다) */
+.piece.lifted {
+  background: var(--meok); color: var(--hanji-hi);
+  box-shadow: inset 0 0 0 calc(.35 * var(--u)) var(--meok), inset 0 0 0 calc(.35 * var(--u) + 1px) var(--hanji-hi);
+}
 .piece.used { opacity: 0; pointer-events: none; }
-.piece.lift { transform: translateY(calc(-.9 * var(--u))) scale(1.14); text-shadow: 0 0 calc(.6 * var(--u)) rgba(31, 28, 23, .45); }
-.ghost-piece { position: fixed; z-index: 999; pointer-events: none; color: var(--meok); transform: translate(-50%, -50%); font-family: 'Gowun Batang', serif; }
+/* 실마리 조각 — 짙어지며 떠오른다 */
+.piece.lift {
+  transform: translateY(calc(-.9 * var(--u))) scale(1.14);
+  box-shadow: inset 0 0 0 calc(.35 * var(--u)) var(--hanji-hi), inset 0 0 0 calc(.35 * var(--u) + 1px) var(--meok), 0 calc(1.4 * var(--u)) calc(2.8 * var(--u)) rgba(31, 28, 23, .35);
+}
+/* 끌리는 조각 — 같은 상자가 손가락 위에 떠서 따라온다 */
+.ghost-piece {
+  position: fixed; z-index: 999; pointer-events: none; transform: translate(-50%, -50%); font-family: 'Gowun Batang', serif;
+  box-shadow: inset 0 0 0 calc(.35 * var(--u)) var(--hanji-hi), inset 0 0 0 calc(.35 * var(--u) + 1px) var(--meok), 0 calc(1.4 * var(--u)) calc(2.8 * var(--u)) rgba(31, 28, 23, .35);
+}
 .flyer {
-  position: absolute; z-index: 6; pointer-events: none; line-height: 1.35; color: var(--meok);
-  text-shadow: 0 0 calc(.6 * var(--u)) rgba(31, 28, 23, .45); transform: translate(0, 0) scale(1.14);
+  position: absolute; z-index: 6; pointer-events: none; transform: translate(0, 0) scale(1.14);
+  box-shadow: inset 0 0 0 calc(.35 * var(--u)) var(--hanji-hi), inset 0 0 0 calc(.35 * var(--u) + 1px) var(--meok), 0 calc(1.4 * var(--u)) calc(2.8 * var(--u)) rgba(31, 28, 23, .35);
   transition: transform .8s cubic-bezier(.45, 0, .2, 1);
 }
 .howto { position: absolute; left: 0; right: 0; bottom: calc(.7 * var(--u)); margin: 0; text-align: center; font-size: var(--f5); line-height: 1.5; color: var(--meok-soft); }

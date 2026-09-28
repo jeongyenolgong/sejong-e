@@ -48,12 +48,13 @@ html, body {
   font-family: 'Gowun Batang', serif;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;   /* 오래 누르면 뜨는 그림 저장 메뉴를 막는다 — 아이폰·아이패드 (2-3) */
   overscroll-behavior: none;
 }
 /* 게임 글은 어절 단위로만 줄이 바뀐다 — 낱말이 줄 중간에서 쪼개지지 않는다 (요소정의 5-2-2) */
 body { word-break: keep-all; overflow-wrap: normal; }
 button { font-family: inherit; color: inherit; }
-img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
+img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 [hidden] { display: none !important; }
 
 #game {

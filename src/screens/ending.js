@@ -4,7 +4,7 @@
 //   서약서 판 64 × 35.9 — O-01 ~ O-07 · 체크 칸(B-11) · 날짜 = 서약서 판이 뜨는 날 「2026년 9월 21일」 꼴
 //   넘기기 — 옆으로 밀림 0.5초 · ‹ ›(B-05)는 판 바깥 양옆 · 첫 장엔 ‹ 없음 · 서약서엔 › 없음 · ← → 도 된다
 //   체크하면 화면 아래 가운데에 [저장](B-09 · 왼쪽) [종료](B-10 · 오른쪽)
-//   저장 = 문장 판 11장 + 서약서를 PDF로(파일 이름 F-01) · 종료 = 판이 걷히고 → 어두워졌다 → 잠든 모습으로 밝아진다
+//   저장 = 서약서(1쪽 · 고른 캐릭터 앞모습과 함께) + 문장 판 11장을 PDF로(파일 이름 F-01 · 2-4) · 종료 = 판이 걷히고 → 어두워졌다 → 잠든 모습으로 밝아진다
 //   잠든 모습에서는 그대로 머문다(눌러도 아무 일 없음 · 글 없음) · 다시 켜면 처음부터(저장에 「끝냄」)
 import { el, wait } from '../lib/dom.js';
 import { t, HARD } from '../lib/text.js';
@@ -105,8 +105,8 @@ export async function ending(game, { screen, dim, layer }) {
     if (saveB.disabled) return;
     saveB.disabled = true;
     try {
-      const paper = await config('el_hanji_main');
-      await savePdf(jamoData, date || today(), imageUrl(paper.file));
+      const [paper, front] = await Promise.all([config('el_hanji_main'), config(game.character === 'f' ? 'ch_front_f' : 'ch_front_m')]);
+      await savePdf(jamoData, date || today(), imageUrl(paper.file), imageUrl(front.file));
     }
     finally { saveB.disabled = false; }
   });

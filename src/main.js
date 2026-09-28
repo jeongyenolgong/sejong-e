@@ -1,6 +1,6 @@
 // 《세종대왕을 알현하라!》 — 게임의 차례
 //
-//   불러오기 → ① 시작 → ② 캐릭터 선택 → ③ 프롤로그 → ④ 지도 ↔ ⑤ 문 앞(자모 조합 · 힌트 퀴즈 · 점검 퀴즈)
+//   불러오기 → ① 시작 → ② 캐릭터 선택 → ③ 프롤로그 → ④ 지도 ↔ ⑤ 문 앞(자모 조합 · 힌트 퀴즈 · 점검 퀴즈 · 왼쪽 위 점수)
 //   → ⑥ 알현 → ⑦ 갈무리 판 11장 → ⑧ 서약서 → ⑨ 잠든 모습
 //
 // 화면의 정의는 기획 문서(요소정의_v1.md · 화면텍스트_목록_v1.md)가 SSOT다. 코드 주석의 절 번호가 그 문서의 절이다.
@@ -13,12 +13,16 @@ import './styles/ending.css';
 import { t } from './lib/text.js';
 import { preloadAll, config, imageUrl } from './lib/assets.js';
 import { drawFavicon } from './lib/favicon.js';
+import { mountScore } from './lib/score.js';
 import { startScreen } from './screens/start.js';
 import { selectScreen } from './screens/select.js';
 import { prologue } from './screens/prologue.js';
 import { journey } from './screens/journey.js';
 import { audience } from './screens/audience.js';
 import { ending } from './screens/ending.js';
+
+// 오래 누르면 뜨는 메뉴(그림 저장 · 안드로이드)와 오른쪽 클릭 메뉴를 막는다 (2-3)
+document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 async function main() {
   document.title = t('T-01');                 // 탭 제목 = T-01 (두 학년 같게)
@@ -33,6 +37,8 @@ async function main() {
   // CSS 변수 안의 상대 경로는 CSS 파일 자리를 기준으로 풀리므로, 페이지 기준의 온전한 주소로 넘긴다
   const paperUrl = new URL(imageUrl(paper.file), document.baseURI).href;
   document.documentElement.style.setProperty('--paper-main', `url("${paperUrl}")`);
+
+  mountScore(document.getElementById('game'));   // 점수 칸 — 지도에 들어설 때 보인다 (2-6)
 
   // 진행을 저장하지 않는다 — 「이어서 하기」 버튼이 없으니 기능도 없다. 켤 때마다 캐릭터 선택부터 (2026-09-23)
   await startScreen();

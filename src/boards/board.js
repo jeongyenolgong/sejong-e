@@ -15,6 +15,7 @@ import { JamoPanel } from './jamo.js';
 import { HintPanel } from './hint.js';
 import { CheckPanel } from './check.js';
 import { turnPage } from './pageturn.js';
+import { addScore } from '../lib/score.js';
 import jamoData from '../data/jamo.json';
 import hintData from '../data/hint.json';
 import checkData from '../data/check.json';
@@ -76,6 +77,8 @@ export class Board {
       counter,
       practice: !!practice,
       maxHints: practice ? 1 : item.syllables.length,
+      // 자모 조합 점수 — 실마리 안 씀 40 · 하나마다 −10 · 넷 이상 0 (2-6) · 연습 판은 점수 없음
+      onSolved: practice ? null : (used) => addScore(Math.max(0, 40 - 10 * used)),
       onHint: async () => {
         if (busy || jamo.solved || jamo.busy || jamo.hLeft <= 0) return;
         busy = true;
@@ -89,6 +92,9 @@ export class Board {
         busy = false;
       },
     });
+    // 판 높이는 조각 줄 수를 따른다 — 이 빗장(자모 조합 → 점검 퀴즈) 동안 그대로 (2-5)
+    this.frame.classList.add('bolt');
+    this.frame.style.setProperty('--rows', jamo.rows);
     this.show(jamo);
     this.dim.classList.add('on');
     this.frame.classList.add('on');

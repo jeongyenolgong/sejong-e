@@ -14,7 +14,7 @@
 // 본편 실마리 (기2): 문 앞 자모 판에서 실마리를 누르면 그 문의 지도로 돌아온다(맨 아래 출발 자리) → 가운데 안내문(U-12~U-30)이
 //   n번째 실마리의 곳 n을 짚는다 → 곳에 닿으면 자막(U-06) → 화면을 누르면 힌트 퀴즈 → 마치면 문 앞 자모 판으로 바로 돌아간다
 //   · 가다가 문 자리에 닿으면 자모 판이 다시 열린다(실마리 없이 · 「돌아가기」와 같다 · 알림창은 다시 안 뜬다)
-// 근정전 앞마당 (기6): 앞 문들에서 쓰지 않은 실마리 문제를 품계석 앞 관리 8명에게서 푼다 · 다 풀어야 사정문 쪽으로 간다
+// 근정전 앞마당 (기6): 앞 문들에서 쓰지 않은 실마리 문제(많아야 8 · 2-2)를 품계석 앞 관리 8명에게서 푼다 · 다 풀어야 사정문 쪽으로 간다
 // 그림 안 위치(걷는 폭 · 키 · 문 자리 · 곳 · 넘어가는 선)는 public/images/bg_map_*.json에 있다.
 import { el, wait, animate, ease } from '../lib/dom.js';
 import { t } from '../lib/text.js';
@@ -25,6 +25,7 @@ import { Controls } from '../lib/controls.js';
 import { Walker, walkLoop } from '../lib/walker.js';
 import { notice, guide, say, GuideLine } from '../lib/notice.js';
 import { minimap } from '../lib/minimap.js';
+import { showScore } from '../lib/score.js';
 import { bandAt, heightAt, stepWithin, atSpot, Camera } from '../lib/field.js';
 import { T, reduced } from '../lib/timing.js';
 import { Board, hintBoard, hintsOf } from '../boards/board.js';
@@ -274,12 +275,14 @@ async function tutorial(view) {
 
 // ── 근정전 앞마당 — 남은 실마리 (기6) ──
 // 남은 것 = 앞 문 판(광화문 → 근정문)마다 맞히지 않은 힌트 퀴즈 · 게임 차례 · 관리 8명에게 고르게(앞 관리부터 하나씩 더)
+// 많아야 8문제 — 남은 것이 더 많아도 게임 차례로 앞에서부터 8개만 푼다 · 적으면 남은 것을 다 푼다 (2-2 · 2026-09-28)
+const COURT_MAX = 8;
 function courtQueue(game) {
   const before = PLACES.slice(0, 5).flatMap((pl) => pl.bolts || []);
   const qs = before.flatMap((id) => {
     const j = jamoData.find((x) => x.id === id);
     return hintsOf(j.word).slice(game.used[id] || 0, j.syllables.length);
-  });
+  }).slice(0, COURT_MAX);
   const per = Array.from({ length: 8 }, (_, i) => Math.floor(qs.length / 8) + (i < qs.length % 8 ? 1 : 0));
   const officers = [];
   let at = 0;
@@ -351,6 +354,7 @@ export async function journey(game) {
     } else {                                        // 프롤로그 → 어두워졌다 밝아진다
       await cover('dark', T.screenFade, 1);
       mount(screen);
+      showScore(true);                              // 점수 칸 — 지도·문 앞 화면에서만 (2-6)
       await cover('dark', T.screenFade, 0);
     }
 
@@ -392,6 +396,7 @@ export async function journey(game) {
 
     if (reason === 'audience') {
       await cover('dark', T.screenFade, 1);          // 알현 화면이 어둠을 걷는다
+      showScore(false);                              // 알현부터 끝까지 점수는 보이지 않는다 (2-6)
       return;
     }
 
